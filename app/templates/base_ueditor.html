@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+{{ super() }}
+    <script type="text/javascript" src="{{ url_for('static', filename='ueditor/ueditor.config.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='ueditor/ueditor.all.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='ueditor/lang/zh-cn/zh-cn.js') }}"></script>
+{% endblock %}

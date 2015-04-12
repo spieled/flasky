@@ -8,6 +8,10 @@ from .forms import EditProfileForm, EditProfileAdminForm, PostForm,\
 from .. import db
 from ..models import Permission, Role, User, Post, Comment
 from ..decorators import admin_required, permission_required
+import json
+import os
+import re
+from .uploader import Uploader
 
 
 @main.after_app_request
@@ -268,3 +272,148 @@ def moderate_disable(id):
     db.session.add(comment)
     return redirect(url_for('.moderate',
                             page=request.args.get('page', 1, type=int)))
+
+stateMap = [  # 上传状态映射表，国际化用户需考虑此处数据的国际化
+        "SUCCESS",  # 上传成功标记，在UEditor中内不可改变，否则flash判断会出错
+        "文件大小超出 upload_max_filesize 限制",
+        "文件大小超出 MAX_FILE_SIZE 限制",
+        "文件未被完整上传",
+        "没有文件被上传",
+        "上传文件为空",
+]
+
+stateError = {
+        "ERROR_TMP_FILE": "临时文件错误",
+        "ERROR_TMP_FILE_NOT_FOUND": "找不到临时文件",
+        "ERROR_SIZE_EXCEED": "文件大小超出网站限制",
+        "ERROR_TYPE_NOT_ALLOWED": "文件类型不允许",
+        "ERROR_CREATE_DIR": "目录创建失败",
+        "ERROR_DIR_NOT_WRITEABLE": "目录没有写权限",
+        "ERROR_FILE_MOVE": "文件保存时出错",
+        "ERROR_FILE_NOT_FOUND": "找不到上传文件",
+        "ERROR_WRITE_CONTENT": "写入文件内容错误",
+        "ERROR_UNKNOWN": "未知错误",
+        "ERROR_DEAD_LINK": "链接不可用",
+        "ERROR_HTTP_LINK": "链接不是http链接",
+        "ERROR_HTTP_CONTENTTYPE": "链接contentType不正确"
+}
+
+@main.route('/upload/', methods=['GET', 'POST'])
+def upload():
+
+    """UEditor文件上传接口
+
+    config 配置文件
+    result 返回结果
+    """
+    mimetype = 'application/json'
+    result = {}
+    action = request.args.get('action')
+
+    # 解析JSON格式的配置文件
+    with open(os.path.join(current_app.static_folder, 'ueditor', 'python', 'config.json')) as fp:
+        try:
+            # 删除 `/**/` 之间的注释
+            CONFIG = json.loads(re.sub(r'\/\*.*\*\/', '', fp.read()))
+        except:
+            CONFIG = {}
+
+    if action == 'config':
+        # 初始化时，返回配置文件给客户端
+        result = CONFIG
+
+    elif action in ('uploadimage', 'uploadfile', 'uploadvideo'):
+        # 图片、文件、视频上传
+        if action == 'uploadimage':
+            fieldName = CONFIG.get('imageFieldName')
+            config = {
+                "pathFormat": CONFIG['imagePathFormat'],
+                "maxSize": CONFIG['imageMaxSize'],
+                "allowFiles": CONFIG['imageAllowFiles']
+            }
+        elif action == 'uploadvideo':
+            fieldName = CONFIG.get('videoFieldName')
+            config = {
+                "pathFormat": CONFIG['videoPathFormat'],
+                "maxSize": CONFIG['videoMaxSize'],
+                "allowFiles": CONFIG['videoAllowFiles']
+            }
+        else:
+            fieldName = CONFIG.get('fileFieldName')
+            config = {
+                "pathFormat": CONFIG['filePathFormat'],
+                "maxSize": CONFIG['fileMaxSize'],
+                "allowFiles": CONFIG['fileAllowFiles']
+            }
+
+        if fieldName in request.files:
+            field = request.files[fieldName]
+            uploader = Uploader(field, config, current_app.static_folder)
+            result = uploader.getFileInfo()
+        else:
+            result['state'] = '上传接口出错'
+
+    elif action in ('uploadscrawl'):
+        # 涂鸦上传
+        fieldName = CONFIG.get('scrawlFieldName')
+        config = {
+            "pathFormat": CONFIG.get('scrawlPathFormat'),
+            "maxSize": CONFIG.get('scrawlMaxSize'),
+            "allowFiles": CONFIG.get('scrawlAllowFiles'),
+            "oriName": "scrawl.png"
+        }
+        if fieldName in request.form:
+            field = request.form[fieldName]
+            uploader = Uploader(field, config, current_app.static_folder, 'base64')
+            result = uploader.getFileInfo()
+        else:
+            result['state'] = '上传接口出错'
+
+    elif action in ('catchimage'):
+        config = {
+            "pathFormat": CONFIG['catcherPathFormat'],
+            "maxSize": CONFIG['catcherMaxSize'],
+            "allowFiles": CONFIG['catcherAllowFiles'],
+            "oriName": "remote.png"
+        }
+        fieldName = CONFIG['catcherFieldName']
+
+        if fieldName in request.form:
+            # 这里比较奇怪，远程抓图提交的表单名称不是这个
+            source = []
+        elif '%s[]' % fieldName in request.form:
+            # 而是这个
+            source = request.form.getlist('%s[]' % fieldName)
+
+        _list = []
+        for imgurl in source:
+            uploader = Uploader(imgurl, config, current_app.static_folder, 'remote')
+            info = uploader.getFileInfo()
+            _list.append({
+                'state': info['state'],
+                'url': info['url'],
+                'original': info['original'],
+                'source': imgurl,
+            })
+
+        result['state'] = 'SUCCESS' if len(_list) > 0 else 'ERROR'
+        result['list'] = _list
+
+    else:
+        result['state'] = '请求地址出错'
+
+    result = json.dumps(result)
+
+    if 'callback' in request.args:
+        callback = request.args.get('callback')
+        if re.match(r'^[\w_]+$', callback):
+            result = '%s(%s)' % (callback, result)
+            mimetype = 'application/javascript'
+        else:
+            result = json.dumps({'state': 'callback参数不合法'})
+
+    res = make_response(result)
+    res.mimetype = mimetype
+    res.headers['Access-Control-Allow-Origin'] = '*'
+    res.headers['Access-Control-Allow-Headers'] = 'X-Requested-With,X_Requested_With'
+    return res
