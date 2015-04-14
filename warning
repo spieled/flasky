@@ -1,0 +1,12 @@
+when use PyMySQL@0.6.6 with python3, maybe there is a problem in cursors.py line 132.
+I solve this problem by change
+"""
+query = query % self._escape_args(args, conn)
+"""
+to
+"""
+if type(query) == bytes:
+    query = query.decode() % self._escape_args(args, conn)
+else:
+    query = query % self._escape_args(args, conn)
+"""

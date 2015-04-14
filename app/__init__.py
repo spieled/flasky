@@ -7,6 +7,9 @@ from flask.ext.login import LoginManager
 from flask.ext.pagedown import PageDown
 from config import config
 
+import pymysql
+pymysql.install_as_MySQLdb()
+
 bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
