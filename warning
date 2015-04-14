@@ -10,3 +10,12 @@ if type(query) == bytes:
 else:
     query = query % self._escape_args(args, conn)
 """
+
+not good,
+so change to
+"""
+try:
+    query = query % self._escape_args(args, conn)
+except:
+    query = query.decode() % self._escape_args(args, conn)
+"""
