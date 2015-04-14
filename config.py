@@ -46,6 +46,10 @@ class ProductionConfig(Config):
     def init_app(cls, app):
         Config.init_app(app)
 
+        # handle proxy server headers
+        from werkzeug.contrib.fixers import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app)
+        
         # email errors to the administrators
         import logging
         from logging.handlers import SMTPHandler
