@@ -1,4 +1,4 @@
 -r common.txt
 Flask-SSLify==0.1.4
 gunicorn==18.0
-PyMySQL==0.6.6
+mysql-connector-python==2.0.3
