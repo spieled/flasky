@@ -311,7 +311,7 @@ def upload():
     action = request.args.get('action')
 
     # 解析JSON格式的配置文件
-    with open(os.path.join(current_app.static_folder, 'ueditor', 'python', 'config.json')) as fp:
+    with open(os.path.join(current_app.static_folder, 'ueditor', 'python', 'config.json'), encoding='utf8') as fp:
         try:
             # 删除 `/**/` 之间的注释
             CONFIG = json.loads(re.sub(r'\/\*.*\*\/', '', fp.read()))
