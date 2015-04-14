@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_ueditor.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 {% import "_macros.html" as macros %}
 
@@ -32,4 +32,7 @@
 {% block scripts %}
 {{ super() }}
 {{ pagedown.include_pagedown() }}
+    <script>
+    UE.getEditor('ueditor-container');
+    </script>
 {% endblock %}

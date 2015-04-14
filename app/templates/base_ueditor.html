@@ -1,4 +1,16 @@
-{% extends "base.html" %}
+{% extends "base_syntaxhighlighter.html" %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+    #ueditor-container {
+        height: auto;
+        border: none;
+        margin: 0;
+        padding: 0;
+    }
+    </style>
+{% endblock %}
 
 {% block scripts %}
 {{ super() }}
