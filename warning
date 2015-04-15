@@ -21,4 +21,16 @@ except:
 """
 
 the better way is using mysql-connector-python instead:
-pip install mysql-connector-python --allow-external mysql-connector-python
+pip install mysql-connector-python --allow-external mysql-connector-python  (not convenient)
+
+at last, I find the right way to configure mysql use PyMySQL, and this is recommended.
+
+1. install PyMySQL
+2. set connection String to """
+mysql+pymysql://<username>:<password>@<host>/<dbname>[?<options>]
+
+"""
+3. add code to __init__.py """
+import pymysql
+pymysql.install_as_MySQLdb()
+"""

@@ -40,7 +40,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'mysql+mysqlconnector://root:cloudvast@localhost/flasky?charset=utf8'
+        'mysql+pymysql://root:cloudvast@localhost/flasky?charset=utf8'
 
     @classmethod
     def init_app(cls, app):
