@@ -7,6 +7,7 @@ import base64
 import random
 import urllib
 import datetime
+from .. import up
 
 from flask import url_for
 from werkzeug.utils import secure_filename
@@ -71,25 +72,33 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_SIZE_EXCEED')
             return
 
-        # 检查路径是否存在，不存在则创建
-        dirname = os.path.dirname(self.filePath)
-        if not os.path.exists(dirname):
-            try:
-                os.makedirs(dirname)
-            except:
-                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
-                return
-        elif not os.access(dirname, os.W_OK):
-            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
-            return
-
+        headers={'x-gmkerl-rotate': '180'}
         try:
-            with open(self.filePath, 'wb') as fp:
-                fp.write(img)
+            res = up.put(self.filePath, img, checksum=True, headers=headers)
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
             return
+
+        # # 检查路径是否存在，不存在则创建
+        # dirname = os.path.dirname(self.filePath)
+        # if not os.path.exists(dirname):
+        #     try:
+        #         os.makedirs(dirname)
+        #     except:
+        #         self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+        #         return
+        # elif not os.access(dirname, os.W_OK):
+        #     self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+        #     return
+        #
+        # try:
+        #     with open(self.filePath, 'wb') as fp:
+        #         fp.write(img)
+        #     self.stateInfo = self.stateMap[0]
+        # except:
+        #     self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
+        #     return
 
     def upFile(self):
         # 上传文件的主处理方法
@@ -114,25 +123,35 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_TYPE_NOT_ALLOWED')
             return
 
-        # 检查路径是否存在，不存在则创建
-        dirname = os.path.dirname(self.filePath)
-        if not os.path.exists(dirname):
-            try:
-                os.makedirs(dirname)
-            except:
-                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
-                return
-        elif not os.access(dirname, os.W_OK):
-            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
-            return
 
-        # 保存文件
+        # 上传文件到UPYUN
+        headers={'x-gmkerl-rotate': '180'}
         try:
-            self.fileobj.save(self.filePath)
+            res = up.put(self.filePath, self.fileobj, checksum=True, headers=headers)
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
             return
+
+        # 检查路径是否存在，不存在则创建
+        # dirname = os.path.dirname(self.filePath)
+        # if not os.path.exists(dirname):
+        #     try:
+        #         os.makedirs(dirname)
+        #     except:
+        #         self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+        #         return
+        # elif not os.access(dirname, os.W_OK):
+        #     self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+        #     return
+        #
+        # # 保存文件
+        # try:
+        #     self.fileobj.save(self.filePath)
+        #     self.stateInfo = self.stateMap[0]
+        # except:
+        #     self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
+        #     return
 
     def saveRemote(self):
         _file = urllib.urlopen(self.fileobj)
@@ -147,25 +166,33 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_SIZE_EXCEED')
             return
 
-        # 检查路径是否存在，不存在则创建
-        dirname = os.path.dirname(self.filePath)
-        if not os.path.exists(dirname):
-            try:
-                os.makedirs(dirname)
-            except:
-                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
-                return
-        elif not os.access(dirname, os.W_OK):
-            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
-            return
-
+        headers={'x-gmkerl-rotate': '180'}
         try:
-            with open(self.filePath, 'wb') as fp:
-                fp.write(_file.read())
+            res = up.put(self.filePath, _file, checksum=True, headers=headers)
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
             return
+
+        # # 检查路径是否存在，不存在则创建
+        # dirname = os.path.dirname(self.filePath)
+        # if not os.path.exists(dirname):
+        #     try:
+        #         os.makedirs(dirname)
+        #     except:
+        #         self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+        #         return
+        # elif not os.access(dirname, os.W_OK):
+        #     self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+        #     return
+        #
+        # try:
+        #     with open(self.filePath, 'wb') as fp:
+        #         fp.write(_file.read())
+        #     self.stateInfo = self.stateMap[0]
+        # except:
+        #     self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
+        #     return
 
     def getStateError(self, error):
         # 上传错误检查
@@ -227,7 +254,8 @@ class Uploader:
         filename = re.sub(r'^/', '', self.fullName)
         return {
             'state': self.stateInfo,
-            'url': url_for('static', filename=filename, _external=True),
+            'url': 'http://'+os.environ.get('UPYUN_DOMAIN')+'/' + self.filePath,
+            # 'url': url_for('static', filename=filename, _external=True),
             'title': self.oriName,
             'original': self.oriName,
             'type': self.fileType,

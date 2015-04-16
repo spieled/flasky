@@ -5,7 +5,7 @@ from flask.ext.moment import Moment
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.login import LoginManager
 from flask.ext.pagedown import PageDown
-from config import config
+from config import config, Config
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -19,6 +19,9 @@ pagedown = PageDown()
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
 login_manager.login_view = 'auth.login'
+
+import upyun
+up = upyun.UpYun(Config.UPYUN_BUCKET, Config.UPYUN_USERNAME, Config.UPYUN_PASSWORD, timeout=60, endpoint=upyun.ED_AUTO)
 
 
 def create_app(config_name):

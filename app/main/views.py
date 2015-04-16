@@ -6,6 +6,7 @@ from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostForm,\
     CommentForm
 from .. import db
+from .. import up
 from ..models import Permission, Role, User, Post, Comment
 from ..decorators import admin_required, permission_required
 import json
@@ -348,7 +349,7 @@ def upload():
 
         if fieldName in request.files:
             field = request.files[fieldName]
-            uploader = Uploader(field, config, current_app.static_folder)
+            uploader = Uploader(field, config, '')
             result = uploader.getFileInfo()
         else:
             result['state'] = '上传接口出错'
@@ -364,7 +365,7 @@ def upload():
         }
         if fieldName in request.form:
             field = request.form[fieldName]
-            uploader = Uploader(field, config, current_app.static_folder, 'base64')
+            uploader = Uploader(field, config, '', 'base64')
             result = uploader.getFileInfo()
         else:
             result['state'] = '上传接口出错'
@@ -387,7 +388,8 @@ def upload():
 
         _list = []
         for imgurl in source:
-            uploader = Uploader(imgurl, config, current_app.static_folder, 'remote')
+            uploader = Uploader(imgurl, config, '', 'remote')
+            # uploader = Uploader(imgurl, config, current_app.static_folder, 'remote')
             info = uploader.getFileInfo()
             _list.append({
                 'state': info['state'],

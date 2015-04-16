@@ -19,6 +19,10 @@ class Config:
     FLASKY_FOLLOWERS_PER_PAGE = 50
     FLASKY_COMMENTS_PER_PAGE = 30
     FLASKY_SLOW_DB_QUERY_TIME=0.5
+    UPYUN_DOMAIN = os.environ.get('UPYUN_DOMAIN')
+    UPYUN_BUCKET = os.environ.get('UPYUN_BUCKET')
+    UPYUN_USERNAME = os.environ.get('UPYUN_USERNAME')
+    UPYUN_PASSWORD = os.environ.get('UPYUN_PASSWORD')
 
     @staticmethod
     def init_app(app):
