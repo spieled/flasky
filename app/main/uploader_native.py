@@ -2,19 +2,17 @@
 
 import os
 import re
+import json
 import base64
 import random
 import urllib
 import datetime
-import sys
-from .. import up
 
+from flask import url_for
 from werkzeug.utils import secure_filename
 
 
 class Uploader:
-
-    PY3 = sys.version_info >= (3, 0)
 
     stateMap = [  # 上传状态映射表，国际化用户需考虑此处数据的国际化
         "SUCCESS",  # 上传成功标记，在UEditor中内不可改变，否则flash判断会出错
@@ -73,8 +71,21 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_SIZE_EXCEED')
             return
 
+        # 检查路径是否存在，不存在则创建
+        dirname = os.path.dirname(self.filePath)
+        if not os.path.exists(dirname):
+            try:
+                os.makedirs(dirname)
+            except:
+                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+                return
+        elif not os.access(dirname, os.W_OK):
+            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+            return
+
         try:
-            res = up.put(self.filePath, img, checksum=True)
+            with open(self.filePath, 'wb') as fp:
+                fp.write(img)
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
@@ -103,22 +114,28 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_TYPE_NOT_ALLOWED')
             return
 
+        # 检查路径是否存在，不存在则创建
+        dirname = os.path.dirname(self.filePath)
+        if not os.path.exists(dirname):
+            try:
+                os.makedirs(dirname)
+            except:
+                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+                return
+        elif not os.access(dirname, os.W_OK):
+            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+            return
 
-        # 上传文件到UPYUN
-        headers=None #{'x-gmkerl-rotate': '180'}#rotate180就倒置了
+        # 保存文件
         try:
-            res = up.put(self.filePath, self.fileobj, checksum=True, headers=headers)
+            self.fileobj.save(self.filePath)
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
             return
 
     def saveRemote(self):
-        if self.PY3:
-            from urllib import request
-            _file = request.urlopen(self.fileobj)
-        else:
-            _file = urllib.urlopen(self.fileobj)
+        _file = urllib.urlopen(self.fileobj)
         self.oriName = self.config['oriName']
         self.fileSize = 0
         self.fileType = self.getFileExt()
@@ -130,9 +147,21 @@ class Uploader:
             self.stateInfo = self.getStateError('ERROR_SIZE_EXCEED')
             return
 
-        headers=None #{'x-gmkerl-rotate': '180'} # rotate180 图片倒置
+        # 检查路径是否存在，不存在则创建
+        dirname = os.path.dirname(self.filePath)
+        if not os.path.exists(dirname):
+            try:
+                os.makedirs(dirname)
+            except:
+                self.stateInfo = self.getStateError('ERROR_CREATE_DIR')
+                return
+        elif not os.access(dirname, os.W_OK):
+            self.stateInfo = self.getStateError('ERROR_DIR_NOT_WRITEABLE')
+            return
+
         try:
-            res = up.put(self.filePath, _file.read(), checksum=True, headers=headers)
+            with open(self.filePath, 'wb') as fp:
+                fp.write(_file.read())
             self.stateInfo = self.stateMap[0]
         except:
             self.stateInfo = self.getStateError('ERROR_FILE_MOVE')
@@ -198,7 +227,7 @@ class Uploader:
         filename = re.sub(r'^/', '', self.fullName)
         return {
             'state': self.stateInfo,
-            'url': 'http://'+os.environ.get('UPYUN_DOMAIN')+'/' + self.filePath,
+            'url': url_for('static', filename=filename, _external=True),
             'title': self.oriName,
             'original': self.oriName,
             'type': self.fileType,
